@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pcaptriage"
+version = "0.1.0"
+description = "Automated pcap triage on top of Zeek, with MITRE ATT&CK-mapped findings and an HTML report."
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+authors = [{ name = "Zakariya Elmansouri", email = "zakariyaelmansouri40@gmail.com" }]
+keywords = [
+    "pcap",
+    "zeek",
+    "network-security",
+    "mitre-attack",
+    "threat-detection",
+    "incident-response",
+    "dfir",
+    "soc",
+    "forensics",
+    "pcap-analysis",
+    "triage",
+    "blue-team",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Information Technology",
+    "Topic :: Security",
+    "Topic :: System :: Networking :: Monitoring",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS :: MacOS X",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/zakeelm6/pcaptriage"
+Repository = "https://github.com/zakeelm6/pcaptriage"
+Issues = "https://github.com/zakeelm6/pcaptriage/issues"
+
+[project.scripts]
+pcaptriage = "pcaptriage.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["pcaptriage*"]

@@ -1,0 +1,23 @@
+# outputs
+pcaptriage-report/
+resultats/
+*.html
+!pcaptriage/**/*.html
+
+# zeek artifacts
+*.log
+zeek-logs/
+
+# captures (do not commit pcaps)
+*.pcap
+*.pcapng
+*.cap
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
