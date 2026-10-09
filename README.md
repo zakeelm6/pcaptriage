@@ -1,5 +1,9 @@
 # pcaptriage
 
+[![PyPI](https://img.shields.io/pypi/v/pcaptriage.svg)](https://pypi.org/project/pcaptriage/)
+[![Python](https://img.shields.io/pypi/pyversions/pcaptriage.svg)](https://pypi.org/project/pcaptriage/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 Triage automatique de captures reseau, construit au-dessus de **Zeek**.
 
 Wireshark est manuel : tu ouvres un pcap et tu cherches toi-meme. pcaptriage
@@ -32,11 +36,10 @@ verdict lisible, pas pour remplacer le decodeur de Wireshark.
 ## Installation
 
 ```bash
-# en tant que commande systeme (recommande, via pipx)
-pipx install git+https://github.com/zakeelm6/pcaptriage.git
-
-# ou avec pip, dans un venv
-pip install git+https://github.com/zakeelm6/pcaptriage.git
+# depuis PyPI (recommande)
+pip install pcaptriage
+# ou, pour une commande systeme isolee
+pipx install pcaptriage
 
 # en developpement, depuis une copie locale
 pip install -e .
