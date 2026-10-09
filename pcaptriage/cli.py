@@ -41,7 +41,8 @@ def _analyze_one(pcap: Path, out_root: Path, args) -> int:
     for detect in all_detections():
         findings.extend(detect(logs))
     if args.decode:
-        findings.extend(decode_findings(logs))
+        schemes = [s.strip() for s in args.decode_schemes.split(",") if s.strip()]
+        findings.extend(decode_findings(logs, schemes, strict=args.decode_strict))
 
     summary = build_summary(logs)
     narrative = build_narrative(findings)
@@ -95,8 +96,20 @@ def main(argv=None) -> int:
     )
     parser.add_argument(
         "--decode", action="store_true",
-        help="decode Base64/hex/URL-encoded content found in HTTP/DNS/FTP fields "
+        help="decode encoded content in HTTP/DNS/FTP fields "
              "(noisy; useful for CTF and lab captures)",
+    )
+    parser.add_argument(
+        "--decode-schemes", default="", metavar="LIST",
+        help="comma-separated decoders to use with --decode: "
+             "base64,base32,hex,url,rot13,gzip (default). Add base85 or pass "
+             "'all' to include it (base85 is noisy inside URIs).",
+    )
+    parser.add_argument(
+        "--decode-strict", action="store_true",
+        help="noise elimination: with --decode, keep only decodings that "
+             "contain flags, commands or credentials (drops meaningful-looking "
+             "but unremarkable text)",
     )
     parser.add_argument(
         "--zeek-cmd", default="zeek",
