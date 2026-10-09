@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pcaptriage"
-version = "0.2.0"
+version = "0.3.0"
 description = "Automated pcap triage on top of Zeek, with MITRE ATT&CK-mapped findings and an HTML report."
 readme = "README.md"
 requires-python = ">=3.9"
