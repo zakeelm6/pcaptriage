@@ -41,6 +41,7 @@ def detect_dns_tunneling(logs: Dict[str, List[dict]]) -> List[Finding]:
     count_by_domain: Dict[str, int] = defaultdict(int)
     len_sum_by_domain: Dict[str, int] = defaultdict(int)
     ent_sum_by_domain: Dict[str, float] = defaultdict(float)
+    hosts_by_domain: Dict[str, set] = defaultdict(set)
 
     for rec in dns:
         qname = rec.get("query")
@@ -52,6 +53,9 @@ def detect_dns_tunneling(logs: Dict[str, List[dict]]) -> List[Finding]:
         count_by_domain[dom] += 1
         len_sum_by_domain[dom] += len(qname)
         ent_sum_by_domain[dom] += _entropy(sub)
+        src = rec.get("id.orig_h")
+        if src:
+            hosts_by_domain[dom].add(src)
 
     findings: List[Finding] = []
     for dom, count in sorted(count_by_domain.items(), key=lambda kv: kv[1], reverse=True):
@@ -77,8 +81,10 @@ def detect_dns_tunneling(logs: Dict[str, List[dict]]) -> List[Finding]:
                         f"query count: {count}",
                         f"average query length: {avg_len:.1f}",
                         f"average subdomain entropy: {avg_ent:.2f}",
+                        f"querying hosts: {', '.join(sorted(hosts_by_domain[dom])[:8])}",
                     ],
                     source_log="dns",
+                    hosts=sorted(hosts_by_domain[dom]),
                 )
             )
 

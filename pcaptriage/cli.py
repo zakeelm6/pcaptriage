@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import List
 
 from . import __version__
+from .correlation import build_narrative
 from .detections import all_detections
 from .loader import load_logs
 from .report import build_summary, render_html
@@ -40,9 +41,10 @@ def _analyze_one(pcap: Path, out_root: Path, args) -> int:
         findings.extend(detect(logs))
 
     summary = build_summary(logs)
+    narrative = build_narrative(findings)
 
     report_path = case_dir / "report.html"
-    report_path.write_text(render_html(pcap.name, summary, findings), encoding="utf-8")
+    report_path.write_text(render_html(pcap.name, summary, findings, narrative), encoding="utf-8")
 
     json_path = case_dir / "findings.json"
     json_path.write_text(
@@ -50,6 +52,7 @@ def _analyze_one(pcap: Path, out_root: Path, args) -> int:
             {
                 "pcap": pcap.name,
                 "summary": {k: v for k, v in summary.items()},
+                "narrative": narrative,
                 "findings": [f.to_dict() for f in findings],
             },
             indent=2,

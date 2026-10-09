@@ -25,17 +25,21 @@ def detect_suspicious_tls(logs: Dict[str, List[dict]]) -> List[Finding]:
 
     evidence: List[str] = []
     reasons: Counter = Counter()
+    hosts: set = set()
 
     for rec in ssl:
         status = (rec.get("validation_status") or "").lower()
         subject = rec.get("subject", "")
         server = rec.get("server_name", "")
+        src = rec.get("id.orig_h")
         dst = rec.get("id.resp_h", "?")
         dport = rec.get("id.resp_p", "?")
         if status and status != "ok" and (status in BAD_STATUSES or "self signed" in status or "expired" in status):
             reasons[status] += 1
             label = server or subject or "(no SNI/subject)"
             evidence.append(f"{dst}:{dport} {label} -> {status}")
+            if src:
+                hosts.add(src)
 
     if not evidence:
         return []
@@ -61,5 +65,6 @@ def detect_suspicious_tls(logs: Dict[str, List[dict]]) -> List[Finding]:
             mitre=["T1573"],
             evidence=evidence[:25],
             source_log="ssl",
+            hosts=sorted(hosts),
         )
     ]

@@ -21,6 +21,7 @@ CLEARTEXT_SERVICES = {
 def detect_cleartext_creds(logs: Dict[str, List[dict]]) -> List[Finding]:
     findings: List[Finding] = []
     evidence: List[str] = []
+    hosts: set = set()
 
     # FTP: Zeek ftp.log carries 'user' and 'password'.
     for rec in logs.get("ftp", []):
@@ -31,6 +32,8 @@ def detect_cleartext_creds(logs: Dict[str, List[dict]]) -> List[Finding]:
             dst = rec.get("id.resp_h", "?")
             shown_pw = pw if pw else "(captured)"
             evidence.append(f"FTP {src} -> {dst} login user={user} password={shown_pw}")
+            if src != "?":
+                hosts.add(src)
 
     # HTTP basic auth: Zeek http.log exposes 'username' (and 'password').
     for rec in logs.get("http", []):
@@ -40,6 +43,8 @@ def detect_cleartext_creds(logs: Dict[str, List[dict]]) -> List[Finding]:
             host = rec.get("host", rec.get("id.resp_h", "?"))
             uri = rec.get("uri", "")
             evidence.append(f"HTTP basic auth {src} -> {host}{uri} user={user}")
+            if src != "?":
+                hosts.add(src)
 
     # Any session on a cleartext service, from conn.log (coarse signal).
     cleartext_sessions = 0
@@ -62,6 +67,7 @@ def detect_cleartext_creds(logs: Dict[str, List[dict]]) -> List[Finding]:
                 mitre=["T1552", "T1040"],
                 evidence=evidence[:25],
                 source_log="ftp/http",
+                hosts=sorted(hosts),
             )
         )
     elif cleartext_sessions:

@@ -68,6 +68,7 @@ def detect_port_scan(logs: Dict[str, List[dict]]) -> List[Finding]:
                     mitre=["T1046"],
                     evidence=evidence,
                     source_log="conn",
+                    hosts=[src],
                 )
             )
 

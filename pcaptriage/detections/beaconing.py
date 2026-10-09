@@ -65,6 +65,7 @@ def detect_beaconing(logs: Dict[str, List[dict]]) -> List[Finding]:
                     f"interval regularity (CV): {cv:.3f} (lower = more regular)",
                 ],
                 source_log="conn",
+                hosts=[src, dst],
             )
         )
 

@@ -15,7 +15,17 @@ verdict lisible, pas pour remplacer le decodeur de Wireshark.
 
 ![Exemple de rapport pcaptriage](docs/report.jpg)
 
-*Exemple de rapport : findings priorises par severite, chacun mappe sur MITRE ATT&CK.*
+*Exemple de rapport : un **recit d'attaque** (les hotes qui traversent plusieurs
+phases de la kill chain) au-dessus des findings priorises et mappes MITRE ATT&CK.*
+
+## Ce qui le distingue de Zeek / Suricata
+
+Zeek et Suricata produisent des evenements. pcaptriage ajoute la couche qu'ils
+ne font pas : il **correle** les findings par hote et les ordonne le long d'une
+kill chain simplifiee (Reconnaissance -> Credential Access -> C2 ->
+Exfiltration). Un hote qui apparait dans plusieurs phases est signale comme
+chaine de compromission probable. C'est le passage de "voici des evenements" a
+"voici l'histoire".
 
 ## Ce qu'il detecte
 

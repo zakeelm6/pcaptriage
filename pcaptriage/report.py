@@ -86,7 +86,36 @@ def _finding_card(f: Finding) -> str:
     """
 
 
-def render_html(pcap_name: str, summary: dict, findings: List[Finding]) -> str:
+def _narrative_html(chains: list) -> str:
+    if not chains:
+        return ""
+    cards = []
+    for c in chains:
+        flow = ' <span class="arrow">&rarr;</span> '.join(_esc(p) for p in c["phases"])
+        steps = "".join(
+            f"<li><strong>{_esc(p)}:</strong> {_esc('; '.join(c['steps'][p]))}</li>"
+            for p in c["phases"]
+        )
+        cards.append(
+            f"""
+            <article class="chain">
+              <header><span class="pivot">{_esc(c['host'])}</span>
+                <span class="flow">{flow}</span></header>
+              <ul>{steps}</ul>
+            </article>"""
+        )
+    return f"""
+    <section>
+      <h2>Attack narrative</h2>
+      <p class="sub">Hosts that appear across several phases of the kill chain.
+        A single host spanning multiple phases is the strongest sign of a real
+        compromise, not isolated noise.</p>
+      {''.join(cards)}
+    </section>"""
+
+
+def render_html(pcap_name: str, summary: dict, findings: List[Finding], narrative: list = None) -> str:
+    narrative = narrative or []
     findings = sorted(findings, key=lambda f: f.severity_rank(), reverse=True)
     counts = Counter(f.severity for f in findings)
 
@@ -162,6 +191,15 @@ def render_html(pcap_name: str, summary: dict, findings: List[Finding]) -> str:
     background:rgba(127,127,127,.12); padding:1px 5px; border-radius:4px; word-break:break-all; }}
   .finding footer {{ margin-top:8px; color:var(--muted); font-size:11px; }}
   .empty {{ color:var(--muted); }}
+  .chain {{ background:var(--card); border:1px solid var(--line);
+    border-left:5px solid #b4232a; border-radius:8px; padding:12px 16px; margin:12px 0; }}
+  .chain header {{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }}
+  .pivot {{ font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;
+    background:#b4232a; color:#fff; padding:2px 8px; border-radius:4px; }}
+  .flow {{ font-size:13px; color:var(--fg); }}
+  .arrow {{ color:var(--muted); }}
+  .chain ul {{ margin:8px 0 0; }}
+  .chain li {{ font-size:13px; }}
 </style>
 </head>
 <body>
@@ -170,6 +208,8 @@ def render_html(pcap_name: str, summary: dict, findings: List[Finding]) -> str:
   <div class="sub">capture: <code>{_esc(pcap_name)}</code> &middot; generated {generated}</div>
 
   <div class="tiles">{sev_tiles}</div>
+
+  {_narrative_html(narrative)}
 
   <section>
     <h2>Findings</h2>

@@ -77,6 +77,7 @@ def detect_name_poisoning(logs: Dict[str, List[dict]]) -> List[Finding]:
                         f"sample victims: {sample}",
                     ],
                     source_log="conn",
+                    hosts=[responder],
                 )
             )
 
