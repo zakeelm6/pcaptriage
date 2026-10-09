@@ -26,6 +26,7 @@ verdict lisible, pas pour remplacer le decodeur de Wireshark.
 | DNS tunneling / exfiltration | fort volume + noms longs/haute entropie vers un domaine | T1071.004, T1048 |
 | Beaconing / C2 | rappels a intervalle quasi constant vers une meme destination | T1071, T1095 |
 | Certificats TLS suspects | certificats auto-signes, expires ou non valides | T1573 |
+| Poisoning LLMNR/NBT-NS/mDNS | un hote repond aux requetes de resolution de noms de plusieurs victimes (style Responder) | T1557.001 |
 
 ## Prerequis
 

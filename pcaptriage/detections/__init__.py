@@ -9,5 +9,6 @@ from . import port_scan        # noqa: F401
 from . import dns_tunneling    # noqa: F401
 from . import beaconing        # noqa: F401
 from . import suspicious_tls   # noqa: F401
+from . import name_poisoning   # noqa: F401
 
 from .base import all_detections, Finding  # noqa: F401
