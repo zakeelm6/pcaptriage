@@ -1,0 +1,12 @@
+.git
+.github
+docs
+dist
+build
+*.egg-info
+__pycache__
+*.pcap
+*.pcapng
+*.cap
+pcaptriage-report
+resultats

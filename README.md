@@ -50,8 +50,33 @@ chaine de compromission probable. C'est le passage de "voici des evenements" a
 
 ## Installation
 
+### Option 1 : image Docker (Linux, macOS, Windows, rien d'autre a installer)
+
+L'image embarque Zeek et pcaptriage. Seul Docker est requis (Docker Desktop sur
+Windows et macOS). C'est la voie la plus simple, et la seule evidente sous
+Windows puisque Zeek n'y tourne pas nativement.
+
 ```bash
-# depuis PyPI (recommande)
+# Linux / macOS : analyser capture.pcap du dossier courant
+docker run --rm -v "$PWD:/data" ghcr.io/zakeelm6/pcaptriage capture.pcap
+
+# Linux : eviter des fichiers de sortie appartenant a root
+docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/data" ghcr.io/zakeelm6/pcaptriage capture.pcap
+
+# Windows (PowerShell)
+docker run --rm -v "${PWD}:/data" ghcr.io/zakeelm6/pcaptriage capture.pcap
+
+# toutes les options marchent (dossier, --decode, ...)
+docker run --rm -v "$PWD:/data" ghcr.io/zakeelm6/pcaptriage ./captures --decode --decode-strict
+```
+
+Le rapport est ecrit dans `pcaptriage-report/` a cote de la capture. L'option
+`--docker` n'est pas necessaire ici, Zeek est deja dans l'image.
+
+### Option 2 : paquet Python
+
+```bash
+# depuis PyPI
 pip install pcaptriage
 # ou, pour une commande systeme isolee
 pipx install pcaptriage
