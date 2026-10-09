@@ -9,67 +9,33 @@ from pathlib import Path
 from typing import List
 
 from . import __version__
-from .correlation import build_narrative
-from .decode import decode_findings
-from .detections import all_detections
-from .loader import load_logs
-from .report import build_summary, render_html
-from .zeek_runner import ZeekError, run_zeek
+from .pipeline import PCAP_EXTS, Options, analyze_pcap
+from .zeek_runner import ZeekError
 
-PCAP_EXTS = {".pcap", ".pcapng", ".cap"}
+
+def _options(args) -> Options:
+    return Options(
+        use_docker=args.docker,
+        zeek_cmd=args.zeek_cmd,
+        docker_image=args.docker_image,
+        decode=args.decode,
+        decode_schemes=args.decode_schemes,
+        decode_strict=args.decode_strict,
+    )
 
 
 def _analyze_one(pcap: Path, out_root: Path, args) -> int:
-    """Analyze a single pcap. Returns the number of findings."""
-    case_dir = out_root / pcap.stem
-    logs_dir = case_dir / "zeek-logs"
+    """Analyze a single pcap. Returns the number of findings, or -1 on failure."""
     print(f"[*] {pcap.name}: running Zeek ({'docker' if args.docker else 'local'})...")
     try:
-        run_zeek(
-            str(pcap),
-            str(logs_dir),
-            use_docker=args.docker,
-            zeek_cmd=args.zeek_cmd,
-            docker_image=args.docker_image,
-        )
+        res = analyze_pcap(pcap, out_root, _options(args))
     except ZeekError as exc:
         print(f"[!] {pcap.name}: {exc}", file=sys.stderr)
         return -1
 
-    logs = load_logs(str(logs_dir))
-    findings = []
-    for detect in all_detections():
-        findings.extend(detect(logs))
-    if args.decode:
-        schemes = [s.strip() for s in args.decode_schemes.split(",") if s.strip()]
-        findings.extend(decode_findings(logs, schemes, strict=args.decode_strict))
-
-    summary = build_summary(logs)
-    narrative = build_narrative(findings)
-
-    report_path = case_dir / "report.html"
-    report_path.write_text(render_html(pcap.name, summary, findings, narrative), encoding="utf-8")
-
-    json_path = case_dir / "findings.json"
-    json_path.write_text(
-        json.dumps(
-            {
-                "pcap": pcap.name,
-                "summary": {k: v for k, v in summary.items()},
-                "narrative": narrative,
-                "findings": [f.to_dict() for f in findings],
-            },
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
-
-    sev = {}
-    for f in findings:
-        sev[f.severity] = sev.get(f.severity, 0) + 1
-    sev_str = ", ".join(f"{v} {k}" for k, v in sorted(sev.items())) or "none"
-    print(f"[+] {pcap.name}: {len(findings)} finding(s) ({sev_str}) -> {report_path}")
-    return len(findings)
+    sev_str = ", ".join(f"{v} {k}" for k, v in sorted(res.severity_counts().items())) or "none"
+    print(f"[+] {pcap.name}: {len(res.findings)} finding(s) ({sev_str}) -> {res.report_path}")
+    return len(res.findings)
 
 
 def _collect_pcaps(target: Path) -> List[Path]:
@@ -80,10 +46,42 @@ def _collect_pcaps(target: Path) -> List[Path]:
     return []
 
 
+def _serve_main(argv) -> int:
+    from .webui import serve
+
+    p = argparse.ArgumentParser(
+        prog="pcaptriage serve",
+        description="Local web UI: drop a pcap in the browser, get the report.",
+    )
+    p.add_argument("--host", default="127.0.0.1",
+                   help="address to listen on (default 127.0.0.1, localhost only; "
+                        "use 0.0.0.0 inside a container, there is NO authentication)")
+    p.add_argument("--port", type=int, default=8080, help="port (default 8080)")
+    p.add_argument("--docker", action="store_true",
+                   help="run Zeek via Docker instead of a local install")
+    p.add_argument("--zeek-cmd", default="zeek", help="local Zeek binary (default: zeek)")
+    p.add_argument("--docker-image", default="zeek/zeek:lts",
+                   help="Zeek Docker image (default: zeek/zeek:lts)")
+    p.add_argument("--workdir", default=None,
+                   help="keep results here (default: a temp dir deleted on exit)")
+    p.add_argument("--max-size-mb", type=int, default=1000,
+                   help="maximum upload size in MB (default 1000)")
+    p.add_argument("--no-browser", action="store_true", help="do not open the browser")
+    a = p.parse_args(argv)
+    opts = Options(use_docker=a.docker, zeek_cmd=a.zeek_cmd, docker_image=a.docker_image)
+    return serve(a.host, a.port, opts, workdir=a.workdir,
+                 max_mb=a.max_size_mb, open_browser=not a.no_browser)
+
+
 def main(argv=None) -> int:
+    raw = sys.argv[1:] if argv is None else list(argv)
+    if raw and raw[0] == "serve":
+        return _serve_main(raw[1:])
+
     parser = argparse.ArgumentParser(
         prog="pcaptriage",
         description="Automated pcap triage on top of Zeek, mapped to MITRE ATT&CK.",
+        epilog="Web UI: run 'pcaptriage serve' (see 'pcaptriage serve --help').",
     )
     parser.add_argument("target", help="a .pcap file or a directory of captures")
     parser.add_argument(
@@ -120,7 +118,7 @@ def main(argv=None) -> int:
         help="Zeek Docker image (default: zeek/zeek:lts)",
     )
     parser.add_argument("--version", action="version", version=f"pcaptriage {__version__}")
-    args = parser.parse_args(argv)
+    args = parser.parse_args(raw)
 
     target = Path(args.target)
     pcaps = _collect_pcaps(target)

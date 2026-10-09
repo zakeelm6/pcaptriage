@@ -131,6 +131,33 @@ pcaptriage-report/
     zeek-logs/       <- logs Zeek bruts (conn/dns/http/ssl/...)
 ```
 
+## Interface web
+
+Pour ne pas passer par la ligne de commande : `pcaptriage serve` ouvre une page
+locale ou l'on depose un pcap et ou l'on obtient le rapport.
+
+```bash
+# paquet Python (Zeek local, ou --docker)
+pcaptriage serve
+
+# avec l'image Docker (ouvre http://localhost:8080)
+docker run --rm -p 127.0.0.1:8080:8080 ghcr.io/zakeelm6/pcaptriage serve --host 0.0.0.0 --no-browser
+```
+
+![Interface web de pcaptriage](docs/ui.jpg)
+
+Options de decodage (`--decode`, mode strict, schemes) dans la page. Les
+analyses de la session sont listees avec leurs liens vers le rapport et le JSON.
+
+Securite : le serveur n'ecoute que sur `127.0.0.1` par defaut et **n'a aucune
+authentification**. Il refuse les requetes dont l'en-tete `Host` n'est pas local
+(contre le DNS rebinding) et les POST sans l'en-tete `X-Requested-With` (contre
+les envois depuis un autre site). Les captures envoyees sont supprimees apres
+analyse, et le dossier de travail temporaire est efface a l'arret. Dans un
+conteneur, `--host 0.0.0.0` est necessaire : publie alors le port uniquement sur
+`127.0.0.1` de la machine hote, comme dans l'exemple ci-dessus, et n'expose
+jamais ce port sur un reseau non fiable.
+
 ## Architecture
 
 ```
@@ -140,16 +167,21 @@ pcap --> Zeek (parsing) --> *.log JSON --> loader --> detections --> findings
 ```
 
 - `zeek_runner.py` lance Zeek (local ou Docker) et produit les logs JSON.
+- `pipeline.py` enchaine Zeek, detections, decodage, correlation et rapport ;
+  la CLI et l'interface web utilisent le meme code.
 - `loader.py` charge les logs en memoire.
 - `detections/` : une detection = une fonction decoree `@register` qui prend
   les logs et renvoie des `Finding`. Ajouter une detection = ajouter un fichier.
 - `mitre.py` : table technique -> (nom, lien).
+- `correlation.py` : relie les findings par hote sur une kill chain (recit d'attaque).
+- `decode.py` : decodage optionnel (Base64, hex, gzip...) avec filtre anti-bruit.
 - `report.py` : resume de la capture + rendu HTML autonome.
-- `cli.py` : orchestration, mode fichier ou dossier.
+- `webui.py` : interface web locale (`pcaptriage serve`).
+- `cli.py` : arguments, mode fichier ou dossier.
 
 ## Feuille de route
 
-- ARP spoofing / MITM, LLMNR/NBT-NS poisoning
+- ARP spoofing (demande un petit script Zeek dedie)
 - Extraction de fichiers (files.log) et de credentials additionnels
 - Moteur de regles externes (YAML/Sigma-like) pour etendre sans coder
 - Graphe de communication dans le rapport

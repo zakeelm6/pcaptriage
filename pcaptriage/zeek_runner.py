@@ -38,8 +38,10 @@ def run_zeek(
     if use_docker:
         # Mount the pcap's directory read-only and the logs dir as the
         # working directory so Zeek writes its *.log files onto the host.
+        # On POSIX run as the current user so the logs are not root-owned.
+        user = ["--user", f"{os.getuid()}:{os.getgid()}"] if hasattr(os, "getuid") else []
         cmd = [
-            "docker", "run", "--rm",
+            "docker", "run", "--rm", *user,
             "-v", f"{pcap.parent}:/pcap:ro",
             "-v", f"{out}:/work",
             "-w", "/work",
