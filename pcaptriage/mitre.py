@@ -17,6 +17,8 @@ TECHNIQUES: Dict[str, Tuple[str, str]] = {
     "T1048": ("Exfiltration Over Alternative Protocol", "https://attack.mitre.org/techniques/T1048/"),
     "T1557.001": ("Adversary-in-the-Middle: LLMNR/NBT-NS Poisoning", "https://attack.mitre.org/techniques/T1557/001/"),
     "T1557": ("Adversary-in-the-Middle", "https://attack.mitre.org/techniques/T1557/"),
+    "T1132": ("Data Encoding", "https://attack.mitre.org/techniques/T1132/"),
+    "T1027": ("Obfuscated Files or Information", "https://attack.mitre.org/techniques/T1027/"),
 }
 
 

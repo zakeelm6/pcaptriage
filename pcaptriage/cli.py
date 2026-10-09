@@ -10,6 +10,7 @@ from typing import List
 
 from . import __version__
 from .correlation import build_narrative
+from .decode import decode_findings
 from .detections import all_detections
 from .loader import load_logs
 from .report import build_summary, render_html
@@ -39,6 +40,8 @@ def _analyze_one(pcap: Path, out_root: Path, args) -> int:
     findings = []
     for detect in all_detections():
         findings.extend(detect(logs))
+    if args.decode:
+        findings.extend(decode_findings(logs))
 
     summary = build_summary(logs)
     narrative = build_narrative(findings)
@@ -89,6 +92,11 @@ def main(argv=None) -> int:
     parser.add_argument(
         "--docker", action="store_true",
         help="run Zeek via Docker instead of a local install",
+    )
+    parser.add_argument(
+        "--decode", action="store_true",
+        help="decode Base64/hex/URL-encoded content found in HTTP/DNS/FTP fields "
+             "(noisy; useful for CTF and lab captures)",
     )
     parser.add_argument(
         "--zeek-cmd", default="zeek",

@@ -72,9 +72,18 @@ pcaptriage capture.pcap --docker
 # un dossier entier de captures
 python3 -m pcaptriage ./captures/ --docker -o resultats/
 
+# decoder le contenu encode (Base64/hex/URL) dans HTTP/DNS/FTP (CTF/lab)
+pcaptriage capture.pcap --docker --decode
+
 # Zeek installe en local
 python3 -m pcaptriage capture.pcap
 ```
+
+Avec `--decode`, pcaptriage cherche les blobs encodes (Base64, hex, URL-encoding)
+dans les champs extraits par Zeek, les decode, et remonte le clair en signalant
+ce qui contient flags, commandes ou identifiants. C'est du **decodage**, sans
+clef, a ne pas confondre avec le dechiffrement TLS (qui, lui, exige le materiel
+de clef et n'est pas encore supporte). Option desactivee par defaut car bruyante.
 
 Sortie, par capture, dans le dossier `-o` (defaut `pcaptriage-report/`) :
 
