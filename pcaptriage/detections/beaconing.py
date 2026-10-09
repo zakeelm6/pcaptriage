@@ -6,7 +6,7 @@ from collections import defaultdict
 from statistics import mean, pstdev
 from typing import Dict, List
 
-from .base import Finding, register
+from .base import Finding, fmt_ts, register
 
 # Minimum connections to the same destination to judge regularity.
 MIN_CONNECTIONS = 10
@@ -61,6 +61,8 @@ def detect_beaconing(logs: Dict[str, List[dict]]) -> List[Finding]:
                     f"source: {src}",
                     f"destination: {dst}:{port}",
                     f"connections: {len(ts_list)}",
+                    f"first seen: {fmt_ts(ts_list[0])}",
+                    f"last seen: {fmt_ts(ts_list[-1])}",
                     f"mean interval: {m:.1f} s",
                     f"interval regularity (CV): {cv:.3f} (lower = more regular)",
                 ],

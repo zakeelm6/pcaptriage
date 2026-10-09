@@ -21,6 +21,7 @@ def _options(args) -> Options:
         decode=args.decode,
         decode_schemes=args.decode_schemes,
         decode_strict=args.decode_strict,
+        artifacts=args.artifacts,
     )
 
 
@@ -108,6 +109,13 @@ def main(argv=None) -> int:
         help="noise elimination: with --decode, keep only decodings that "
              "contain flags, commands or credentials (drops meaningful-looking "
              "but unremarkable text)",
+    )
+    parser.add_argument(
+        "--artifacts", action="store_true",
+        help="carve archives/executables/Office files out of the capture, "
+             "hash them (SHA-256) and list archive contents (index only, nothing "
+             "is extracted or run). The carved files are kept in the case folder "
+             "and may be real malware.",
     )
     parser.add_argument(
         "--zeek-cmd", default="zeek",

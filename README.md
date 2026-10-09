@@ -37,6 +37,8 @@ chaine de compromission probable. C'est le passage de "voici des evenements" a
 | Beaconing / C2 | rappels a intervalle quasi constant vers une meme destination | T1071, T1095 |
 | Certificats TLS suspects | certificats auto-signes, expires ou non valides | T1573 |
 | Poisoning LLMNR/NBT-NS/mDNS | un hote repond aux requetes de resolution de noms de plusieurs victimes (style Responder) | T1557.001 |
+| Telechargement d'archive/executable | archive ou executable recu en HTTP depuis un serveur externe (le type est lu dans le contenu, pas le nom) | T1105 |
+| Envoi de mail en masse (malspam) | un poste contacte >= 10 serveurs de messagerie externes, avec ses pieces jointes | T1566 |
 
 ## Prerequis
 
@@ -121,9 +123,20 @@ pcaptriage capture.pcap --docker --decode
 pcaptriage capture.pcap --docker --decode --decode-schemes base64,hex,gzip
 pcaptriage capture.pcap --docker --decode --decode-strict
 
+# inventorier les fichiers suspects : nom, domaine, heure, SHA-256, contenu des archives
+pcaptriage capture.pcap --docker --artifacts
+
 # Zeek installe en local
 python3 -m pcaptriage capture.pcap
 ```
+
+Avec `--artifacts`, Zeek extrait aussi les archives, executables et documents
+Office de la capture. Pour chacun, le rapport donne l'heure (UTC), le nom, le
+domaine d'origine, le SHA-256 (utile pour une recherche de reputation, rien n'est
+envoye nulle part) et, pour une archive ZIP, la liste des fichiers qu'elle
+contient. On ne lit que l'index de l'archive : rien n'est extrait ni execute.
+Attention : les fichiers extraits restent sur disque dans
+`zeek-logs/artifacts/` et peuvent etre de vrais malwares.
 
 Avec `--decode`, pcaptriage cherche les blobs encodes dans les champs extraits
 par Zeek, les decode, et remonte le clair en signalant flags, commandes ou
@@ -147,6 +160,12 @@ pcaptriage-report/
     findings.json    <- meme contenu, automatisable (injectable dans un SIEM)
     zeek-logs/       <- logs Zeek bruts (conn/dns/http/ssl/...)
 ```
+
+## Validation et tests
+
+`python -m unittest discover -s tests` lance les tests de non-regression (aussi
+executes par la CI a chaque push). Le premier test sur une vraie infection, ses
+faux positifs et ses limites sont decrits dans [docs/VALIDATION.md](docs/VALIDATION.md).
 
 ## Interface web
 
@@ -193,6 +212,7 @@ pcap --> Zeek (parsing) --> *.log JSON --> loader --> detections --> findings
 - `correlation.py` : relie les findings par hote sur une kill chain (recit d'attaque).
 - `decode.py` : decodage optionnel (Base64, hex, gzip...) avec filtre anti-bruit.
 - `report.py` : resume de la capture + rendu HTML autonome.
+- `artifacts.py` : extraction, hachage et inventaire des fichiers suspects (`--artifacts`).
 - `webui.py` : interface web locale (`pcaptriage serve`).
 - `cli.py` : arguments, mode fichier ou dossier.
 

@@ -17,14 +17,18 @@ from .detections.base import Finding
 
 # Simplified kill-chain phases, in order.
 PHASE_ORDER = [
+    "Delivery",
     "Reconnaissance",
     "Credential Access",
     "Command & Control",
+    "Propagation",
     "Exfiltration",
 ]
 
 # Map each detection id to a phase.
 PHASE_BY_ID = {
+    "suspicious-download": "Delivery",
+    "mass-mailing": "Propagation",
     "port-scan": "Reconnaissance",
     "name-poisoning": "Credential Access",
     "name-resolution-exposed": "Credential Access",

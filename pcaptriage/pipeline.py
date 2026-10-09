@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List
 
+from .artifacts import collect_artifacts
 from .correlation import build_narrative
 from .decode import decode_findings
 from .detections import all_detections
@@ -26,6 +27,7 @@ class Options:
     decode: bool = False
     decode_schemes: str = ""
     decode_strict: bool = False
+    artifacts: bool = False
 
 
 @dataclass
@@ -36,6 +38,7 @@ class Result:
     json_path: Path
     findings: List[Finding]
     narrative: list
+    artifacts: list = None  # type: ignore[assignment]
 
     def severity_counts(self) -> dict:
         counts: dict = {}
@@ -57,6 +60,7 @@ def analyze_pcap(pcap: Path, out_root: Path, opts: Options) -> Result:
         use_docker=opts.use_docker,
         zeek_cmd=opts.zeek_cmd,
         docker_image=opts.docker_image,
+        extract=opts.artifacts,
     )
 
     logs = load_logs(str(logs_dir))
@@ -69,10 +73,11 @@ def analyze_pcap(pcap: Path, out_root: Path, opts: Options) -> Result:
 
     summary = build_summary(logs)
     narrative = build_narrative(findings)
+    artifacts = collect_artifacts(logs, case_dir) if opts.artifacts else []
 
     report_path = case_dir / "report.html"
     report_path.write_text(
-        render_html(pcap.name, summary, findings, narrative), encoding="utf-8"
+        render_html(pcap.name, summary, findings, narrative, artifacts), encoding="utf-8"
     )
 
     json_path = case_dir / "findings.json"
@@ -82,6 +87,7 @@ def analyze_pcap(pcap: Path, out_root: Path, opts: Options) -> Result:
                 "pcap": pcap.name,
                 "summary": {k: v for k, v in summary.items()},
                 "narrative": narrative,
+                "artifacts": artifacts,
                 "findings": [f.to_dict() for f in findings],
             },
             indent=2,
@@ -89,4 +95,4 @@ def analyze_pcap(pcap: Path, out_root: Path, opts: Options) -> Result:
         encoding="utf-8",
     )
 
-    return Result(pcap.name, case_dir, report_path, json_path, findings, narrative)
+    return Result(pcap.name, case_dir, report_path, json_path, findings, narrative, artifacts)

@@ -23,6 +23,7 @@ def run_zeek(
     use_docker: bool = False,
     zeek_cmd: str = "zeek",
     docker_image: str = "zeek/zeek:lts",
+    extract: bool = False,
 ) -> str:
     """Run Zeek on `pcap_path`, writing JSON logs into `logs_dir`.
 
@@ -35,6 +36,15 @@ def run_zeek(
     out = Path(logs_dir).resolve()
     out.mkdir(parents=True, exist_ok=True)
 
+    extra = []
+    if extract:
+        from .artifacts import ARTIFACT_DIR, SCRIPT_NAME, zeek_script
+
+        (out / ARTIFACT_DIR).mkdir(exist_ok=True)
+        (out / SCRIPT_NAME).write_text(zeek_script(), encoding="utf-8")
+        # Relative to the working directory: /work in Docker, `out` locally.
+        extra = [SCRIPT_NAME]
+
     if use_docker:
         # Mount the pcap's directory read-only and the logs dir as the
         # working directory so Zeek writes its *.log files onto the host.
@@ -46,14 +56,14 @@ def run_zeek(
             "-v", f"{out}:/work",
             "-w", "/work",
             docker_image,
-            "zeek", "-C", "-r", f"/pcap/{pcap.name}", "LogAscii::use_json=T",
+            "zeek", "-C", "-r", f"/pcap/{pcap.name}", "LogAscii::use_json=T", *extra,
         ]
     else:
         if shutil.which(zeek_cmd) is None:
             raise ZeekError(
                 f"'{zeek_cmd}' not found on PATH. Install Zeek or use --docker."
             )
-        cmd = [zeek_cmd, "-C", "-r", str(pcap), "LogAscii::use_json=T"]
+        cmd = [zeek_cmd, "-C", "-r", str(pcap), "LogAscii::use_json=T", *extra]
 
     try:
         proc = subprocess.run(

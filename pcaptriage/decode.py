@@ -181,8 +181,13 @@ def decode_findings(logs: Dict[str, List[dict]], schemes: Optional[List[str]] = 
     hits: List[Tuple[str, str, str, str]] = []   # (source, scheme, original, decoded)
     seen = set()
 
-    def add(source, scheme, orig, decoded):
-        if not _keep(decoded, strict):
+    def add(source, scheme, orig, decoded, needs_keyword=False):
+        # ROT13 turns any readable text into other readable-looking text, so
+        # "looks like words" proves nothing: only a keyword hit is evidence.
+        if needs_keyword or strict:
+            if not any(k in decoded.lower() for k in INTERESTING):
+                return
+        elif not _keep(decoded, strict):
             return
         if (scheme, decoded) in seen:
             return
@@ -198,7 +203,7 @@ def decode_findings(logs: Dict[str, List[dict]], schemes: Optional[List[str]] = 
         if "rot13" in schemes:
             rot = codecs.decode(s, "rot_13")
             if rot != s:
-                add(source, "rot13", s, rot)
+                add(source, "rot13", s, rot, needs_keyword=True)
 
         # Token-level transport decoders, per-scheme candidate substrings.
         for name in schemes:

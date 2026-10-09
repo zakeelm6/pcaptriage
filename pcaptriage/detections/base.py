@@ -3,7 +3,23 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, asdict
+from datetime import datetime, timezone
+from email.header import decode_header, make_header
 from typing import Callable, Dict, List
+
+
+def decode_mime_words(name: str) -> str:
+    """Decode MIME encoded-words such as =?UTF-8?B?...?= (SMTP attachment names)."""
+    try:
+        return str(make_header(decode_header(name)))
+    except Exception:  # noqa: BLE001 - keep the raw name if it cannot be decoded
+        return name
+
+
+def fmt_ts(ts) -> str:
+    """Zeek epoch seconds -> 'YYYY-MM-DD HH:MM:SS UTC' (what analysts compare against)."""
+    return datetime.fromtimestamp(float(ts), timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
 
 SEVERITY_ORDER = {
     "critical": 4,

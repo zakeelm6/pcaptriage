@@ -184,6 +184,7 @@ class Handler(BaseHTTPRequestHandler):
             decode=q.get("decode", ["0"])[0] == "1",
             decode_strict=q.get("strict", ["0"])[0] == "1",
             decode_schemes=q.get("schemes", [""])[0][:200],
+            artifacts=q.get("artifacts", ["0"])[0] == "1",
         )
         try:
             res = analyze_pcap(pcap_path, job_dir / "out", opts)
@@ -317,6 +318,7 @@ INDEX_HTML = r"""<!doctype html>
   <div class="opts">
     <label><input id="decode" type="checkbox"> decode Base64/hex/URL...</label>
     <label><input id="strict" type="checkbox"> strict (flags, commands, creds only)</label>
+    <label><input id="artifacts" type="checkbox"> inventory suspicious files (hash, archive contents)</label>
     <label>schemes <input id="schemes" type="text" placeholder="default, or: base64,hex,all"></label>
   </div>
 
@@ -371,6 +373,7 @@ function analyze(file) {
   const p = new URLSearchParams({ name: file.name });
   if ($("#decode").checked) p.set("decode", "1");
   if ($("#strict").checked) { p.set("decode", "1"); p.set("strict", "1"); }
+  if ($("#artifacts").checked) p.set("artifacts", "1");
   if ($("#schemes").value.trim()) p.set("schemes", $("#schemes").value.trim());
 
   const xhr = new XMLHttpRequest();

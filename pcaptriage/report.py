@@ -114,7 +114,47 @@ def _narrative_html(chains: list) -> str:
     </section>"""
 
 
-def render_html(pcap_name: str, summary: dict, findings: List[Finding], narrative: list = None) -> str:
+def _artifacts_html(artifacts: list) -> str:
+    if not artifacts:
+        return ""
+    rows = []
+    for a in artifacts:
+        entries = ""
+        if a.get("entries"):
+            items = "".join(
+                f"<li><code>{_esc(e['name'])}</code> ({_esc(e['size'])} bytes"
+                f"{', encrypted' if e.get('encrypted') else ''})</li>"
+                for e in a["entries"][:20]
+            )
+            entries = f"<details><summary>Archive contents ({len(a['entries'])})</summary><ul>{items}</ul></details>"
+        origin = a.get("url") or a.get("server") or ""
+        rows.append(
+            f"""<tr>
+              <td>{_esc(a.get('time', ''))}</td>
+              <td><code>{_esc(a['name'])}</code>{entries}</td>
+              <td>{_esc(a.get('mime', ''))}<br>{_esc(a.get('size', ''))} bytes</td>
+              <td>{_esc(a.get('direction', ''))} via {_esc(a.get('protocol', ''))}<br>
+                  <code>{_esc(a.get('client', ''))}</code> &harr; <code>{_esc(a.get('server', ''))}</code>
+                  {('<br>' + _esc(origin)) if origin else ''}</td>
+              <td><code>{_esc(a.get('sha256', ''))}</code></td>
+            </tr>"""
+        )
+    return f"""
+    <section>
+      <h2>Artifacts</h2>
+      <p class="sub">Files carved from the capture. Hashes are ready for a reputation
+        lookup; nothing was uploaded. Archive contents come from the archive index only:
+        nothing was extracted or run. The carved files are on disk in the case folder
+        and may be real malware.</p>
+      <div class="scroll"><table class="art">
+        <tr><th>Time (UTC)</th><th>File</th><th>Type</th><th>Transfer</th><th>SHA-256</th></tr>
+        {''.join(rows)}
+      </table></div>
+    </section>"""
+
+
+def render_html(pcap_name: str, summary: dict, findings: List[Finding],
+                narrative: list = None, artifacts: list = None) -> str:
     narrative = narrative or []
     findings = sorted(findings, key=lambda f: f.severity_rank(), reverse=True)
     counts = Counter(f.severity for f in findings)
@@ -191,6 +231,9 @@ def render_html(pcap_name: str, summary: dict, findings: List[Finding], narrativ
     background:rgba(127,127,127,.12); padding:1px 5px; border-radius:4px; word-break:break-all; }}
   .finding footer {{ margin-top:8px; color:var(--muted); font-size:11px; }}
   .empty {{ color:var(--muted); }}
+  .scroll {{ overflow-x:auto; }}
+  table.art td, table.art th {{ vertical-align:top; }}
+  table.art code {{ word-break:break-all; }}
   .chain {{ background:var(--card); border:1px solid var(--line);
     border-left:5px solid #b4232a; border-radius:8px; padding:12px 16px; margin:12px 0; }}
   .chain header {{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }}
@@ -210,6 +253,7 @@ def render_html(pcap_name: str, summary: dict, findings: List[Finding], narrativ
   <div class="tiles">{sev_tiles}</div>
 
   {_narrative_html(narrative)}
+  {_artifacts_html(artifacts or [])}
 
   <section>
     <h2>Findings</h2>
