@@ -28,6 +28,7 @@ PHASE_ORDER = [
 # Map each detection id to a phase.
 PHASE_BY_ID = {
     "suspicious-download": "Delivery",
+    "post-delivery-contacts": "Delivery",
     "mass-mailing": "Propagation",
     "port-scan": "Reconnaissance",
     "name-poisoning": "Credential Access",
@@ -36,6 +37,7 @@ PHASE_BY_ID = {
     "cleartext-services": "Credential Access",
     "suspicious-tls": "Command & Control",
     "beaconing": "Command & Control",
+    "http-host-mismatch": "Command & Control",
     "dns-tunneling": "Exfiltration",
 }
 

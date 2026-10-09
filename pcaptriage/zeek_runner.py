@@ -36,14 +36,13 @@ def run_zeek(
     out = Path(logs_dir).resolve()
     out.mkdir(parents=True, exist_ok=True)
 
-    extra = []
-    if extract:
-        from .artifacts import ARTIFACT_DIR, SCRIPT_NAME, zeek_script
+    from .artifacts import ARTIFACT_DIR, SCRIPT_NAME, zeek_script
 
+    if extract:
         (out / ARTIFACT_DIR).mkdir(exist_ok=True)
-        (out / SCRIPT_NAME).write_text(zeek_script(), encoding="utf-8")
-        # Relative to the working directory: /work in Docker, `out` locally.
-        extra = [SCRIPT_NAME]
+    (out / SCRIPT_NAME).write_text(zeek_script(extract), encoding="utf-8")
+    # Relative to the working directory: /work in Docker, `out` locally.
+    extra = [SCRIPT_NAME]
 
     if use_docker:
         # Mount the pcap's directory read-only and the logs dir as the

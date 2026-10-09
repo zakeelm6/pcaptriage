@@ -1,0 +1,18 @@
+{
+  "name": "real infection capture (document dropper, HTTP and HTTPS C2, outbound malspam)",
+  "basis": "Established by reading the Zeek logs by hand; the C2 servers were also checked against public VirusTotal community reports. Not an official answer key.",
+  "expect": {
+    "suspicious-download": 1,
+    "beaconing": 3,
+    "http-host-mismatch": 1,
+    "suspicious-tls": 1,
+    "mass-mailing": 1
+  },
+  "forbid": [
+    "port-scan",
+    "dns-tunneling",
+    "cleartext-creds",
+    "name-poisoning",
+    "decoded-content"
+  ]
+}

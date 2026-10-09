@@ -24,14 +24,47 @@ from .detections.suspicious_download import RISKY
 # Office formats that carry macro droppers.
 EXTRACT_MIMES = sorted(set(RISKY) | {"application/vnd.ms-excel", "application/msword"})
 
-SCRIPT_NAME = "pcaptriage-extract.zeek"
+SCRIPT_NAME = "pcaptriage.zeek"
 ARTIFACT_DIR = "artifacts"
 
 
-def zeek_script() -> str:
-    """Zeek script that carves the wanted MIME types, one file per fuid."""
-    mimes = ", ".join(f'"{m}"' for m in EXTRACT_MIMES)
-    return f"""@load base/frameworks/files
+def zeek_script(extract: bool = True) -> str:
+    """Zeek script loaded on every run.
+
+    Always: log the Server and X-Powered-By response headers (Zeek does not
+    keep them), into pcaptriage_http.log, so the report can name the web server
+    software behind a suspicious address.
+    With extract=True: also carve the wanted MIME types, one file per fuid.
+    """
+    script = """module PcapTriage;
+
+export {
+    redef enum Log::ID += { HEADERS };
+    type Info: record {
+        ts: time &log;
+        uid: string &log;
+        resp_h: addr &log;
+        name: string &log;
+        value: string &log;
+    };
+}
+
+event zeek_init() &priority=5
+    {
+    Log::create_stream(PcapTriage::HEADERS, [$columns=Info, $path="pcaptriage_http"]);
+    }
+
+event http_header(c: connection, is_orig: bool, name: string, value: string)
+    {
+    if ( ! is_orig && ( name == "SERVER" || name == "X-POWERED-BY" ) )
+        Log::write(PcapTriage::HEADERS, [$ts=network_time(), $uid=c$uid,
+                   $resp_h=c$id$resp_h, $name=name, $value=value]);
+    }
+"""
+    if extract:
+        mimes = ", ".join(f'"{m}"' for m in EXTRACT_MIMES)
+        script += f"""
+@load base/frameworks/files
 @load base/files/extract
 
 redef FileExtract::prefix = "{ARTIFACT_DIR}/";
@@ -44,6 +77,7 @@ event file_sniff(f: fa_file, meta: fa_metadata)
         Files::add_analyzer(f, Files::ANALYZER_EXTRACT, [$extract_filename=f$id]);
     }}
 """
+    return script
 
 
 def _sha256(path: Path) -> str:

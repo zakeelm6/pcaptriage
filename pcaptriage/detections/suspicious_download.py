@@ -40,6 +40,8 @@ def detect_suspicious_download(logs: Dict[str, List[dict]]) -> List[Finding]:
     http_by_uid = {r["uid"]: r for r in logs.get("http", []) if r.get("uid")}
     evidence: List[str] = []
     hosts = set()
+    servers = set()
+    events = []
     worst = "medium"
     kinds = set()
 
@@ -70,6 +72,9 @@ def detect_suspicious_download(logs: Dict[str, List[dict]]) -> List[Finding]:
         )
         if client:
             hosts.add(client)
+        servers.add(server)
+        events.append({"client": client, "server": server, "ts": rec.get("ts"),
+                       "domain": http.get("host") or ""})
 
     if not evidence:
         return []
@@ -89,5 +94,7 @@ def detect_suspicious_download(logs: Dict[str, List[dict]]) -> List[Finding]:
             evidence=evidence[:25],
             source_log="files/http",
             hosts=sorted(hosts),
+            servers=sorted(servers),
+            data={"events": events},
         )
     ]

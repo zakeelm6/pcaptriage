@@ -40,6 +40,8 @@ class Finding:
     evidence: List[str] = field(default_factory=list)
     source_log: str = ""         # which Zeek log it came from
     hosts: List[str] = field(default_factory=list)   # IPs central to this finding (for correlation)
+    servers: List[str] = field(default_factory=list)  # external IPs involved (for the indicators table)
+    data: Dict[str, object] = field(default_factory=dict)  # machine-readable extras, JSON-safe
 
     def severity_rank(self) -> int:
         return SEVERITY_ORDER.get(self.severity, 0)

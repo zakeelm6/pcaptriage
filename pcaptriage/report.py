@@ -153,8 +153,42 @@ def _artifacts_html(artifacts: list) -> str:
     </section>"""
 
 
+def _indicators_html(indicators: list) -> str:
+    if not indicators:
+        return ""
+    rows = []
+    for i in indicators:
+        software = " / ".join(x for x in (i.get("server_header"), i.get("powered_by")) if x)
+        tls = ""
+        if i.get("tls_issuer") or i.get("tls_subject"):
+            tls = (f"<div>{_esc(i.get('tls_subject', ''))}</div>"
+                   f"<div class='dim'>issued by {_esc(i.get('tls_issuer', ''))}</div>")
+        rows.append(
+            f"""<tr>
+              <td><code>{_esc(i['ip'])}</code></td>
+              <td>{'<br>'.join(f'<code>{_esc(n)}</code>' for n in i.get('names', [])) or '-'}</td>
+              <td>{_esc(i.get('first_seen', ''))}</td>
+              <td>{_esc(software) or '-'}</td>
+              <td>{tls or '-'}</td>
+              <td>{_esc(', '.join(i.get('flagged_by', [])))}</td>
+            </tr>"""
+        )
+    return f"""
+    <section>
+      <h2>Flagged servers</h2>
+      <p class="sub">Every external address a finding points at, with what the capture says
+        about it. Look them up on a reputation service yourself: nothing was sent anywhere.</p>
+      <div class="scroll"><table class="art">
+        <tr><th>Address</th><th>Names</th><th>First contact (UTC)</th>
+            <th>Web server</th><th>TLS certificate</th><th>Flagged by</th></tr>
+        {''.join(rows)}
+      </table></div>
+    </section>"""
+
+
 def render_html(pcap_name: str, summary: dict, findings: List[Finding],
-                narrative: list = None, artifacts: list = None) -> str:
+                narrative: list = None, artifacts: list = None,
+                indicators: list = None) -> str:
     narrative = narrative or []
     findings = sorted(findings, key=lambda f: f.severity_rank(), reverse=True)
     counts = Counter(f.severity for f in findings)
@@ -231,6 +265,7 @@ def render_html(pcap_name: str, summary: dict, findings: List[Finding],
     background:rgba(127,127,127,.12); padding:1px 5px; border-radius:4px; word-break:break-all; }}
   .finding footer {{ margin-top:8px; color:var(--muted); font-size:11px; }}
   .empty {{ color:var(--muted); }}
+  .dim {{ color:var(--muted); font-size:12px; }}
   .scroll {{ overflow-x:auto; }}
   table.art td, table.art th {{ vertical-align:top; }}
   table.art code {{ word-break:break-all; }}
@@ -253,6 +288,7 @@ def render_html(pcap_name: str, summary: dict, findings: List[Finding],
   <div class="tiles">{sev_tiles}</div>
 
   {_narrative_html(narrative)}
+  {_indicators_html(indicators or [])}
   {_artifacts_html(artifacts or [])}
 
   <section>

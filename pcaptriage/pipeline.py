@@ -12,6 +12,7 @@ from .correlation import build_narrative
 from .decode import decode_findings
 from .detections import all_detections
 from .detections.base import Finding
+from .indicators import build_indicators
 from .loader import load_logs
 from .report import build_summary, render_html
 from .zeek_runner import run_zeek
@@ -39,12 +40,24 @@ class Result:
     findings: List[Finding]
     narrative: list
     artifacts: list = None  # type: ignore[assignment]
+    indicators: list = None  # type: ignore[assignment]
 
     def severity_counts(self) -> dict:
         counts: dict = {}
         for f in self.findings:
             counts[f.severity] = counts.get(f.severity, 0) + 1
         return counts
+
+
+def detect_all(logs: dict, opts: Options) -> List[Finding]:
+    """Every detection, plus decoding when asked, over already-loaded Zeek logs."""
+    findings: List[Finding] = []
+    for detect in all_detections():
+        findings.extend(detect(logs))
+    if opts.decode:
+        schemes = [s.strip() for s in opts.decode_schemes.split(",") if s.strip()]
+        findings.extend(decode_findings(logs, schemes, strict=opts.decode_strict))
+    return findings
 
 
 def analyze_pcap(pcap: Path, out_root: Path, opts: Options) -> Result:
@@ -64,20 +77,16 @@ def analyze_pcap(pcap: Path, out_root: Path, opts: Options) -> Result:
     )
 
     logs = load_logs(str(logs_dir))
-    findings: List[Finding] = []
-    for detect in all_detections():
-        findings.extend(detect(logs))
-    if opts.decode:
-        schemes = [s.strip() for s in opts.decode_schemes.split(",") if s.strip()]
-        findings.extend(decode_findings(logs, schemes, strict=opts.decode_strict))
+    findings = detect_all(logs, opts)
 
     summary = build_summary(logs)
     narrative = build_narrative(findings)
     artifacts = collect_artifacts(logs, case_dir) if opts.artifacts else []
+    indicators = build_indicators(logs, findings)
 
     report_path = case_dir / "report.html"
     report_path.write_text(
-        render_html(pcap.name, summary, findings, narrative, artifacts), encoding="utf-8"
+        render_html(pcap.name, summary, findings, narrative, artifacts, indicators), encoding="utf-8"
     )
 
     json_path = case_dir / "findings.json"
@@ -87,6 +96,7 @@ def analyze_pcap(pcap: Path, out_root: Path, opts: Options) -> Result:
                 "pcap": pcap.name,
                 "summary": {k: v for k, v in summary.items()},
                 "narrative": narrative,
+                "indicators": indicators,
                 "artifacts": artifacts,
                 "findings": [f.to_dict() for f in findings],
             },
@@ -95,4 +105,4 @@ def analyze_pcap(pcap: Path, out_root: Path, opts: Options) -> Result:
         encoding="utf-8",
     )
 
-    return Result(pcap.name, case_dir, report_path, json_path, findings, narrative, artifacts)
+    return Result(pcap.name, case_dir, report_path, json_path, findings, narrative, artifacts, indicators)

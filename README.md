@@ -34,11 +34,15 @@ chaine de compromission probable. C'est le passage de "voici des evenements" a
 | Credentials en clair | FTP/HTTP basic auth, services non chiffres | T1552, T1040 |
 | Scan de ports / hotes | une source touche beaucoup de ports/hotes, connexions non abouties | T1046 |
 | DNS tunneling / exfiltration | fort volume + noms longs/haute entropie vers un domaine | T1071.004, T1048 |
-| Beaconing / C2 | rappels a intervalle quasi constant vers une meme destination | T1071, T1095 |
-| Certificats TLS suspects | certificats auto-signes, expires ou non valides | T1573 |
+| Beaconing / C2 | rappels reguliers vers un serveur externe, y compris les balises qui font des pauses (test sur la mediane des intervalles, pas seulement l'ecart-type) | T1071, T1095 |
+| Certificats TLS suspects | certificat auto-signe, valable des annees, sans SNI avec un emetteur inconnu, nom qui ne correspond pas (certificats lus dans `x509.log`, serveurs de messagerie ignores) | T1573 |
+| Usurpation de l'en-tete Host | requetes HTTP dont le `Host` nomme un autre site que celui dont l'adresse a ete resolue (profils C2 qui imitent un service OCSP/CDN) | T1090.004, T1071.001 |
 | Poisoning LLMNR/NBT-NS/mDNS | un hote repond aux requetes de resolution de noms de plusieurs victimes (style Responder) | T1557.001 |
 | Telechargement d'archive/executable | archive ou executable recu en HTTP depuis un serveur externe (le type est lu dans le contenu, pas le nom) | T1105 |
 | Envoi de mail en masse (malspam) | un poste contacte >= 10 serveurs de messagerie externes, avec ses pieces jointes | T1566 |
+| Contacts apres livraison | domaines nouveaux contactes dans les 5 minutes suivant un telechargement suspect (contexte, severite `info`, pas un verdict) | T1105 |
+
+Le rapport ajoute un tableau **Flagged servers** : pour chaque serveur externe pointe par un finding, ses noms, la date du premier contact, le logiciel serveur (`Server`, `X-Powered-By`), le certificat TLS et les detections qui l'ont signale. Rien n'est envoye a un service de reputation : les recherches (VirusTotal...) restent a faire a la main, avec l'adresse et le domaine prets a copier.
 
 ## Prerequis
 
@@ -164,8 +168,16 @@ pcaptriage-report/
 ## Validation et tests
 
 `python -m unittest discover -s tests` lance les tests de non-regression (aussi
-executes par la CI a chaque push). Le premier test sur une vraie infection, ses
-faux positifs et ses limites sont decrits dans [docs/VALIDATION.md](docs/VALIDATION.md).
+executes par la CI a chaque push).
+
+`python -m pcaptriage.evaluate --expected validation/carnage.expected.json --logs <zeek-logs>`
+compare les detections a une liste de comportements attendus (et interdits) et
+sort un code d'erreur s'il manque quelque chose ou s'il y a un faux positif. Le
+fichier d'attentes ne contient ni adresse ni domaine : il se publie sans la capture.
+
+Les tests sur une vraie infection, ce qu'ils ont revele (dont des erreurs de ma
+part) et surtout ce qu'ils ne prouvent pas sont dans
+[docs/VALIDATION.md](docs/VALIDATION.md).
 
 ## Interface web
 
@@ -212,7 +224,9 @@ pcap --> Zeek (parsing) --> *.log JSON --> loader --> detections --> findings
 - `correlation.py` : relie les findings par hote sur une kill chain (recit d'attaque).
 - `decode.py` : decodage optionnel (Base64, hex, gzip...) avec filtre anti-bruit.
 - `report.py` : resume de la capture + rendu HTML autonome.
-- `artifacts.py` : extraction, hachage et inventaire des fichiers suspects (`--artifacts`).
+- `artifacts.py` : extraction, hachage et inventaire des fichiers suspects (`--artifacts`), et le script Zeek charge a chaque run.
+- `indicators.py` : profil de chaque serveur externe signale (noms, premier contact, logiciel, certificat).
+- `evaluate.py` : score des detections contre un fichier d'attentes.
 - `webui.py` : interface web locale (`pcaptriage serve`).
 - `cli.py` : arguments, mode fichier ou dossier.
 
