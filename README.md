@@ -13,6 +13,10 @@ couche de triage : il detecte des comportements suspects, les mappe sur
 Pensé pour traiter un pcap (ou un dossier entier) en une commande et rendre un
 verdict lisible, pas pour remplacer le decodeur de Wireshark.
 
+![Exemple de rapport pcaptriage](docs/report.jpg)
+
+*Exemple de rapport : findings priorises par severite, chacun mappe sur MITRE ATT&CK.*
+
 ## Ce qu'il detecte
 
 | Detection | Signal | MITRE |
