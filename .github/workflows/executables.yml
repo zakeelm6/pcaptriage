@@ -19,12 +19,21 @@ jobs:
           - os: ubuntu-latest
             asset: pcaptriage-linux-x86_64
             built: pcaptriage
+            gui_asset: pcaptriage-gui-linux-x86_64
+            gui_built: pcaptriage-gui
+            gui_flags: ""
           - os: windows-latest
             asset: pcaptriage-windows-x86_64.exe
             built: pcaptriage.exe
+            gui_asset: pcaptriage-gui-windows-x86_64.exe
+            gui_built: pcaptriage-gui.exe
+            gui_flags: "--windowed"
           - os: macos-latest
             asset: pcaptriage-macos-arm64
             built: pcaptriage
+            gui_asset: pcaptriage-gui-macos-arm64
+            gui_built: pcaptriage-gui
+            gui_flags: ""
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write   # attach the binary to the release
@@ -50,10 +59,21 @@ jobs:
         shell: bash
         run: cp "dist/${{ matrix.built }}" "${{ matrix.asset }}"
 
+      - name: Build the desktop application
+        shell: bash
+        run: |
+          # --windowed hides the console window on Windows. On the other systems it would
+          # change the packaging (a .app bundle on macOS), so it is left off there.
+          pyinstaller --onefile --name pcaptriage-gui ${{ matrix.gui_flags }} --paths . packaging/gui_entry.py
+          test -f "dist/${{ matrix.gui_built }}"
+          cp "dist/${{ matrix.gui_built }}" "${{ matrix.gui_asset }}"
+
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.asset }}
-          path: ${{ matrix.asset }}
+          path: |
+            ${{ matrix.asset }}
+            ${{ matrix.gui_asset }}
 
       - name: Attach to the release
         if: github.event_name == 'release' || inputs.tag != ''
@@ -61,4 +81,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.event.release.tag_name || inputs.tag }}
-        run: gh release upload "$TAG" "${{ matrix.asset }}" --clobber
+        run: gh release upload "$TAG" "${{ matrix.asset }}" "${{ matrix.gui_asset }}" --clobber

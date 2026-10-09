@@ -165,7 +165,7 @@ def _indicators_html(indicators: list) -> str:
                    f"<div class='dim'>issued by {_esc(i.get('tls_issuer', ''))}</div>")
         rows.append(
             f"""<tr>
-              <td><code>{_esc(i['ip'])}</code></td>
+              <td class="nw"><code>{_esc(i['ip'])}</code></td>
               <td>{'<br>'.join(f'<code>{_esc(n)}</code>' for n in i.get('names', [])) or '-'}</td>
               <td>{_esc(i.get('first_seen', ''))}</td>
               <td>{_esc(software) or '-'}</td>
@@ -269,6 +269,8 @@ def render_html(pcap_name: str, summary: dict, findings: List[Finding],
   .scroll {{ overflow-x:auto; }}
   table.art td, table.art th {{ vertical-align:top; }}
   table.art code {{ word-break:break-all; }}
+  table.art td.nw {{ white-space:nowrap; }}
+  table.art td.nw code {{ word-break:normal; }}
   .chain {{ background:var(--card); border:1px solid var(--line);
     border-left:5px solid #b4232a; border-radius:8px; padding:12px 16px; margin:12px 0; }}
   .chain header {{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }}

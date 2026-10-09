@@ -41,6 +41,7 @@ class Result:
     narrative: list
     artifacts: list = None  # type: ignore[assignment]
     indicators: list = None  # type: ignore[assignment]
+    summary: dict = None  # type: ignore[assignment]
 
     def severity_counts(self) -> dict:
         counts: dict = {}
@@ -105,4 +106,4 @@ def analyze_pcap(pcap: Path, out_root: Path, opts: Options) -> Result:
         encoding="utf-8",
     )
 
-    return Result(pcap.name, case_dir, report_path, json_path, findings, narrative, artifacts, indicators)
+    return Result(pcap.name, case_dir, report_path, json_path, findings, narrative, artifacts, indicators, summary)

@@ -78,11 +78,15 @@ def main(argv=None) -> int:
     raw = sys.argv[1:] if argv is None else list(argv)
     if raw and raw[0] == "serve":
         return _serve_main(raw[1:])
+    if raw and raw[0] == "gui":
+        from .gui import main as gui_main
+
+        return gui_main(raw[1:])
 
     parser = argparse.ArgumentParser(
         prog="pcaptriage",
         description="Automated pcap triage on top of Zeek, mapped to MITRE ATT&CK.",
-        epilog="Web UI: run 'pcaptriage serve' (see 'pcaptriage serve --help').",
+        epilog="Desktop app: 'pcaptriage gui'. Browser UI: 'pcaptriage serve'.",
     )
     parser.add_argument("target", help="a .pcap file or a directory of captures")
     parser.add_argument(

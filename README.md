@@ -54,6 +54,27 @@ Le rapport ajoute un tableau **Flagged servers** : pour chaque serveur externe p
     docker pull zeek/zeek:lts
     ```
 
+## Application de bureau
+
+![Application de bureau pcaptriage](docs/gui.png)
+
+Une vraie fenetre, sans navigateur : on choisit une capture, on clique sur
+**Analyze**, et les resultats s'affichent dans l'application (findings classes par
+gravite avec leur detail et leurs preuves, recit d'attaque, serveurs signales,
+fichiers extraits, resume de la capture). On peut enregistrer le rapport HTML et le
+JSON, ou ouvrir le dossier de sortie.
+
+```bash
+pcaptriage gui                 # ouvre la fenetre
+pcaptriage gui capture.pcap    # ouvre et analyse directement
+```
+
+Tkinter est dans la bibliotheque standard : aucune dependance a installer. Sous Linux
+il faut parfois le paquet `python3-tk` (`sudo apt install python3-tk`). Zeek doit etre
+disponible en local ou via Docker ; la fenetre detecte laquelle des deux options est
+presente et le dit. L'image Docker n'a pas d'interface graphique : elle sert la
+ligne de commande et l'interface web.
+
 ## Installation
 
 ### Option 1 : image Docker (Linux, macOS, Windows, rien d'autre a installer)
@@ -181,7 +202,7 @@ part) et surtout ce qu'ils ne prouvent pas sont dans
 
 ## Interface web
 
-Pour ne pas passer par la ligne de commande : `pcaptriage serve` ouvre une page
+Alternative a l'application de bureau, dans un navigateur : `pcaptriage serve` ouvre une page
 locale ou l'on depose un pcap et ou l'on obtient le rapport.
 
 ```bash
@@ -227,6 +248,7 @@ pcap --> Zeek (parsing) --> *.log JSON --> loader --> detections --> findings
 - `artifacts.py` : extraction, hachage et inventaire des fichiers suspects (`--artifacts`), et le script Zeek charge a chaque run.
 - `indicators.py` : profil de chaque serveur externe signale (noms, premier contact, logiciel, certificat).
 - `evaluate.py` : score des detections contre un fichier d'attentes.
+- `gui.py` : application de bureau Tkinter (`pcaptriage gui`).
 - `webui.py` : interface web locale (`pcaptriage serve`).
 - `cli.py` : arguments, mode fichier ou dossier.
 

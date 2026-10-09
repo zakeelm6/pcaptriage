@@ -14,6 +14,7 @@ import random
 import tempfile
 import unittest
 import zipfile
+from unittest import mock
 from pathlib import Path
 
 from pcaptriage.artifacts import collect_artifacts, zeek_script
@@ -25,7 +26,10 @@ from pcaptriage.detections.host_mismatch import detect_host_mismatch
 from pcaptriage.detections.mass_mailing import detect_mass_mailing
 from pcaptriage.detections.post_delivery import detect_post_delivery
 from pcaptriage.detections.suspicious_tls import detect_suspicious_tls
+from pcaptriage import gui
+from pcaptriage.detections.base import Finding
 from pcaptriage.evaluate import score
+from pcaptriage.pipeline import Result
 from pcaptriage.indicators import build_indicators
 from pcaptriage.detections.port_scan import detect_port_scan
 from pcaptriage.detections.suspicious_download import detect_suspicious_download
@@ -405,6 +409,85 @@ class Evaluate(unittest.TestCase):
     def test_fewer_than_expected_counts_as_missed(self):
         res = score(Counter({"beaconing": 1}), {"expect": {"beaconing": 3}})
         self.assertIn("beaconing", res["missed"])
+
+
+def _result(tmp, findings, narrative=None, artifacts=None, indicators=None):
+    report, js = Path(tmp) / "report.html", Path(tmp) / "findings.json"
+    report.write_text("<html></html>")
+    js.write_text("{}")
+    return Result("x.pcap", Path(tmp), report, js, findings, narrative or [], artifacts or [],
+                  indicators or [], {"connections": 3, "distinct_hosts": 2, "time_span": "t",
+                                     "log_types": ["conn"], "top_talkers": [("10.0.0.5", 3)],
+                                     "top_services": [("dns", 2)]})
+
+
+class DesktopApp(unittest.TestCase):
+    """The logic behind the window needs no display; the window test skips without one."""
+
+    F_LOW = Finding("a", "Zebra", "low", "d")
+    F_HIGH = Finding("b", "Beta", "high", "d", mitre=["T1046"], evidence=["e1", "e2"])
+    F_HIGH2 = Finding("c", "Alpha", "high", "d")
+
+    def test_most_severe_first_then_by_title(self):
+        order = [f.title for f in gui.sorted_findings([self.F_LOW, self.F_HIGH, self.F_HIGH2])]
+        self.assertEqual(order, ["Alpha", "Beta", "Zebra"])
+
+    def test_detail_shows_mitre_name_and_evidence(self):
+        text = gui.finding_detail(self.F_HIGH)
+        self.assertIn("T1046 Network Service Discovery", text)
+        self.assertIn("  e2", text)
+
+    def test_headline_counts_findings_and_chains(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            res = _result(tmp, [self.F_LOW, self.F_HIGH, self.F_HIGH2], narrative=[{"host": "h"}])
+        self.assertEqual(gui.headline(res), "3 finding(s): 2 high, 1 low  |  1 attack chain")
+
+    def test_narrative_text_empty_and_filled(self):
+        self.assertIn("No attack chain", gui.narrative_text([]))
+        chain = {"host": "10.0.0.5", "phases": ["Delivery", "Propagation"],
+                 "steps": {"Delivery": ["got a zip"], "Propagation": ["sent spam"]}}
+        text = gui.narrative_text([chain])
+        self.assertIn("Delivery  >  Propagation", text)
+        self.assertIn("Propagation: sent spam", text)
+
+    def test_artifact_detail_lists_archive_index(self):
+        art = {"name": "a.zip", "mime": "application/zip", "size": 9, "sha256": "ab",
+               "entries": [{"name": "x.xls", "size": 5, "encrypted": False}]}
+        self.assertIn("x.xls", gui.artifact_detail(art))
+
+    def test_engine_prefers_local_zeek_then_docker_then_nothing(self):
+        def which(found):
+            return lambda name: f"/usr/bin/{name}" if name in found else None
+
+        with mock.patch("pcaptriage.gui.shutil.which", which({"zeek", "docker"})):
+            self.assertIs(gui.detect_engine()[0], False)
+        with mock.patch("pcaptriage.gui.shutil.which", which({"docker"})):
+            self.assertIs(gui.detect_engine()[0], True)
+        with mock.patch("pcaptriage.gui.shutil.which", which(set())):
+            self.assertIsNone(gui.detect_engine()[0])
+
+    def test_window_displays_a_result(self):
+        try:
+            import tkinter as tk
+
+            root = tk.Tk()
+        except Exception as exc:  # no tkinter, or no display
+            self.skipTest(f"no usable display: {exc}")
+        root.withdraw()
+        app = gui.App(root)
+        with tempfile.TemporaryDirectory() as tmp:
+            art = {"time": "t", "name": "a.zip", "mime": "application/zip", "size": 1,
+                   "sha256": "ab", "entries": [], "server": "8.8.4.4"}
+            ind = {"ip": "8.8.4.4", "names": ["x.example"], "first_seen": "t", "server_header": "S",
+                   "powered_by": "", "tls_issuer": "", "flagged_by": ["beaconing"]}
+            app.show(_result(tmp, [self.F_LOW, self.F_HIGH], artifacts=[art], indicators=[ind]))
+            self.assertEqual(len(app.f_tree.get_children()), 2)
+            self.assertEqual(len(app.s_tree.get_children()), 1)
+            self.assertEqual(len(app.a_tree.get_children()), 1)
+            first = app.f_tree.get_children()[0]
+            self.assertEqual(app.finding_by_id[first].title, "Beta")   # high before low
+            self.assertEqual(str(app.btn_html.cget("state")), "normal")
+        app._close()
 
 
 if __name__ == "__main__":
