@@ -68,11 +68,19 @@ def main(argv=None) -> int:
     if a.json:
         print(json.dumps({"name": expected.get("name", ""), **result, "ok": not bad}, indent=2))
     else:
-        print(f"capture: {expected.get('name', '(unnamed)')}")
-        print(f"  found:           {', '.join(f'{k} x{n}' for k, n in result['found'].items()) or '-'}")
-        print(f"  MISSED:          {', '.join(f'{k} (expected >= {v['expected']}, found {v['found']})' for k, v in result['missed'].items()) or '-'}")
-        print(f"  FALSE POSITIVES: {', '.join(f'{k} x{n}' for k, n in result['false_positives'].items()) or '-'}")
-        print(f"  unlisted (review): {', '.join(f'{k} x{n}' for k, n in result['unlisted'].items()) or '-'}")
+        def fmt(d, kind):
+            if kind == "missed":
+                return ", ".join(
+                    "%s (expected >= %d, found %d)" % (k, v["expected"], v["found"])
+                    for k, v in d.items()
+                ) or "-"
+            return ", ".join("%s x%d" % (k, n) for k, n in d.items()) or "-"
+
+        print("capture: %s" % expected.get("name", "(unnamed)"))
+        print("  found:             %s" % fmt(result["found"], "count"))
+        print("  MISSED:            %s" % fmt(result["missed"], "missed"))
+        print("  FALSE POSITIVES:   %s" % fmt(result["false_positives"], "count"))
+        print("  unlisted (review): %s" % fmt(result["unlisted"], "count"))
         print("  result:", "FAIL" if bad else "OK")
     return 1 if bad else 0
 
