@@ -73,7 +73,24 @@ docker run --rm -v "$PWD:/data" ghcr.io/zakeelm6/pcaptriage ./captures --decode 
 Le rapport est ecrit dans `pcaptriage-report/` a cote de la capture. L'option
 `--docker` n'est pas necessaire ici, Zeek est deja dans l'image.
 
-### Option 2 : paquet Python
+### Option 2 : executable autonome (sans Python)
+
+Chaque release joint un binaire pour Linux, Windows et macOS (Apple Silicon)
+construit par GitHub Actions : `pcaptriage-linux-x86_64`,
+`pcaptriage-windows-x86_64.exe`, `pcaptriage-macos-arm64`. Pas besoin
+d'installer Python. Zeek reste necessaire : sous Windows, passe par Docker.
+
+```bash
+./pcaptriage-linux-x86_64 capture.pcap --docker
+./pcaptriage-linux-x86_64 serve --docker
+```
+
+Les binaires ne sont pas signes : Windows SmartScreen ou macOS Gatekeeper
+peuvent demander une confirmation au premier lancement. Verifie le fichier
+depuis la page de release de ce depot. Seuls `--version` et `serve --help` sont
+testes automatiquement sur chaque OS, l'analyse complete n'a ete testee que sous Linux.
+
+### Option 3 : paquet Python
 
 ```bash
 # depuis PyPI
